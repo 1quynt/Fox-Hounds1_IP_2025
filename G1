@@ -1,0 +1,342 @@
+#include <graphics.h>
+#include <iostream>
+#include <stdio.h>
+#include <math.h>
+#include <time.h>
+
+// CONSTANTE
+#define SCREEN_W 800
+#define SCREEN_H 600
+#define CELL 60
+#define BOARD_X 160 // (800 - 8*60)/2
+#define BOARD_Y 80
+
+// Culori
+#define C_ALB 15
+#define C_GRI 8
+#define C_ROSU 4    // Vulpe
+#define C_ALBASTRU 1 // Caini
+#define C_GALBEN 14 // Selectie
+#define C_PORTOCALIU 12
+#define C_NEGRU 0
+
+// VARIABILE GLOBALE
+int board[8][8];
+int turn = 1;         // 1=Vulpe, 2=Caini
+int stare = 0;        // 0=Meniu, 1=Mod, 2=AlegereParte, 3=Joc, 4=Final
+int selR = -1, selC = -1; // Piesa selectata
+int winner = 0;       // Cine a castigat
+
+// Configurari
+int isPvP = 0;        // 0=Cu PC, 1=Cu Om
+int euSuntVulpe = 1;  // Daca joc cu PC-ul
+
+//JOC
+
+void initJoc() {
+
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++)
+            board[i][j] = 0;
+
+
+    board[0][4] = 1;
+    board[7][1] = 2; board[7][3] = 2; board[7][5] = 2; board[7][7] = 2;
+
+    turn = 1;
+    selR = -1;
+    winner = 0;
+}
+
+int valid(int r1, int c1, int r2, int c2, int piesa) {
+
+    if(r2 < 0 || r2 > 7 || c2 < 0 || c2 > 7) return 0;
+
+    if(board[r2][c2] != 0) return 0;
+
+    if(abs(r2-r1) != 1 || abs(c2-c1) != 1) return 0;
+
+    //if(piesa == 1 && r2 <= r1) return 0;
+    if(piesa == 2 && r2 >= r1) return 0;
+
+    return 1;
+}
+
+int verificaCastigator() {
+    // verifica daca a castigat vulpea(a ajuns jos)
+    for(int i=0; i<8; i++)
+        if(board[7][i] == 1) return 1; // 1=Vulpe Wins
+    // daca au castigat cainii? cautam vulpea:
+    int vr, vc, vulpeBlocata = 1;
+    for(int i=0; i<8; i++)
+        for(int j=0; j<8; j++)
+            if(board[i][j] == 1) {
+                    vr=i; vc=j;
+            }
+
+    // Verificam daca vulpea are vreo mutare
+    if(valid(vr, vc, vr+1, vc-1, 1)) vulpeBlocata = 0;
+    if(valid(vr, vc, vr+1, vc+1, 1)) vulpeBlocata = 0;
+
+    if(vulpeBlocata) return 2; // Cainii castiga
+
+    return 0; // Nimeni nu a castigat inca
+}
+
+
+void mutarePC(int piesaPC) {
+    int startR[100], startC[100];
+    int finalR[100], finalC[100];
+    int k = 0; // nr mutari gasite
+    for(int i = 0; i < 8; i++) {
+        for(int j = 0; j < 8; j++) {
+
+            // verificam daca am gasit o piesa care apartine PC-ului
+            if(board[i][j] == piesaPC) {
+
+            // verificam cele 4 colturi
+
+                // Verificam STANGA-JOS (i+1, j-1)
+                if(valid(i, j, i+1, j-1, piesaPC) == 1) {
+                    startR[k] = i; startC[k] = j;   // retinem de unde pleaca
+                    finalR[k] = i+1; finalC[k] = j-1; // retinem unde ajunge
+                    k++;
+                }
+
+                // Verificam DREAPTA-JOS (i+1, j+1)
+                if(valid(i, j, i+1, j+1, piesaPC) == 1) {
+                    startR[k] = i; startC[k] = j;
+                    finalR[k] = i+1; finalC[k] = j+1;
+                    k++;
+                }
+
+                // Verificam STANGA-SUS (i-1, j-1)
+                if(valid(i, j, i-1, j-1, piesaPC) == 1) {
+                    startR[k] = i; startC[k] = j;
+                    finalR[k] = i-1; finalC[k] = j-1;
+                    k++;
+                }
+
+                // Verificam DREAPTA-SUS (i-1, j+1)
+                if(valid(i, j, i-1, j+1, piesaPC) == 1) {
+                    startR[k] = i; startC[k] = j;
+                    finalR[k] = i-1; finalC[k] = j+1;
+                    k++;
+                }
+            }
+        }
+    }
+// mutam daca am gasit macar o posibilitate:
+    if(k > 0) {
+        int ales = rand() % k;
+
+        // Scoatem coordonatele din vectorii nostrii
+        int rVechi = startR[ales];
+        int cVechi = startC[ales];
+        int rNou = finalR[ales];
+        int cNou = finalC[ales];
+
+        // Facem schimbul pe tabla
+        board[rNou][cNou] = piesaPC; // Punem piesa in noua pozitie
+        board[rVechi][cVechi] = 0;   // Stergem piesa din vechea pozitie
+
+        // Schimbam tura
+        if(turn == 1) turn = 2;
+        else turn = 1;
+    }
+}
+
+// DESENARE
+
+void buton(int x, int y, char* text) {
+    setfillstyle(SOLID_FILL, C_GRI);
+    bar(x, y, x+300, y+50);
+    rectangle(x, y, x+300, y+50);
+    setcolor(C_PORTOCALIU);
+    setbkcolor(C_GRI);
+    settextstyle(3, 0, 3);
+    outtextxy(x + 20, y + 10, text);
+    setbkcolor(C_NEGRU);
+}
+
+void deseneazaTabla() {
+
+    setcolor(C_PORTOCALIU);
+    settextstyle(3, 0, 4);
+    if(turn == 1) outtextxy(300, 20, "Randul: VULPE");
+    else outtextxy(300, 20, "Randul: CAINI");
+
+    // Tabla
+    for(int i=0; i<8; i++) {
+        for(int j=0; j<8; j++) {
+            int x = BOARD_X + j*CELL;
+            int y = BOARD_Y + i*CELL;
+
+            if((i+j)%2 == 0) setfillstyle(SOLID_FILL, C_GRI);
+            else setfillstyle(SOLID_FILL, C_ALB);
+
+            if(i == selR && j == selC) setfillstyle(SOLID_FILL, C_GALBEN);
+
+            bar(x, y, x+CELL, y+CELL);
+
+            if(board[i][j] == 1) { // Vulpe
+                setfillstyle(SOLID_FILL, C_ROSU);
+                setcolor(C_ROSU);
+                fillellipse(x+30, y+30, 20, 20);
+            }
+            if(board[i][j] == 2) { // Caine
+                setfillstyle(SOLID_FILL, C_ALBASTRU);
+                setcolor(C_ALBASTRU);
+                fillellipse(x+30, y+30, 20, 20);
+            }
+
+
+        if(selR != -1 && selC != -1) {
+
+        int dr[] = {1, 1, -1, -1};
+        int dc[] = {-1, 1, -1, 1};
+
+        int piesaCurenta = board[selR][selC];
+
+        for(int k=0; k<4; k++) {
+            int rPosibil = selR + dr[k];
+            int cPosibil = selC + dc[k];
+            if(valid(selR, selC, rPosibil, cPosibil, piesaCurenta)) {
+
+                int x = BOARD_X + cPosibil * CELL + 30; // ca sa le centram pe mijloc
+                int y = BOARD_Y + rPosibil * CELL + 30;
+
+                setcolor(GREEN);
+                setfillstyle(SOLID_FILL, GREEN);
+                fillellipse(x, y, 8, 8);
+
+                setcolor(C_ALB);
+                circle(x, y, 10);
+            }
+        }
+    }
+}
+        }
+    }
+
+
+// MAIN
+int main() {
+
+    initwindow(SCREEN_W, SCREEN_H, "Fox and Hounds");
+
+    int pagina = 0;
+    clock_t timerPC = 0;
+    srand(time(0));
+    clock_t timerF=0;
+
+    while(1) {
+        setactivepage(pagina);       // Desenam pe pagina ascunsa
+        setvisualpage(1 - pagina);   // vedem cealalta pagina
+        setfillstyle(SOLID_FILL, C_NEGRU);
+        bar(0, 0, SCREEN_W, SCREEN_H);
+
+        if(stare == 0) {
+            setcolor(C_PORTOCALIU);
+            settextstyle(3, 0, 6);
+            outtextxy(150, 100, "FOX & HOUNDS");
+            settextstyle(3, 0, 1);
+            outtextxy(250, 500, "By: M. A. Racovita & C. Caraman");
+
+            buton(250, 300, "Apasa Enter");
+
+            if(kbhit()) {
+                 char c = getch();
+                 if(c == 13) stare = 1;
+            }
+        }
+        else if(stare == 1) {
+            outtextxy(250, 100, "Alege Modul:");
+            buton(250, 250, "Player vs PC");
+            buton(250, 350, "Player vs Player");
+
+            if(ismouseclick(WM_LBUTTONDOWN)) {
+                int mx, my; getmouseclick(WM_LBUTTONDOWN, mx, my);
+                if(mx>250 && mx<550 && my>250 && my<300) { isPvP=0; stare=2; }
+                if(mx>250 && mx<550 && my>350 && my<400) { isPvP=1; stare=2; }
+            }
+        }
+        else if(stare == 2) {
+            outtextxy(250, 100, "Alege Caracter:");
+            buton(250, 250, "VULPE");
+            buton(250, 350, "CAINI");
+
+            if(ismouseclick(WM_LBUTTONDOWN)) {
+                int mx, my; getmouseclick(WM_LBUTTONDOWN, mx, my);
+                if(mx>250 && mx<550 && my>250 && my<300) { euSuntVulpe=1; initJoc(); stare=3; }
+                if(mx>250 && mx<550 && my>350 && my<400) { euSuntVulpe=0; initJoc(); stare=3; }
+            }
+        }
+        else if(stare == 3) {
+            deseneazaTabla();
+
+            winner = verificaCastigator();
+            if(winner != 0) {
+                    if(timerF == 0) timerF = clock(); //daca abia am castigat, pornim un timer
+                    if(clock() - timerF > 1500){
+                        stare = 4;
+                        timerF = 0;
+                    }
+                }
+            else{
+                int eRandulMeu = 0;
+                if(isPvP) eRandulMeu = 1;
+                else if((euSuntVulpe && turn==1) || (!euSuntVulpe && turn==2)) eRandulMeu = 1;
+
+                if(eRandulMeu) {
+                    timerPC = 0;
+                    if(ismouseclick(WM_LBUTTONDOWN)) {
+                        int mx, my; getmouseclick(WM_LBUTTONDOWN, mx, my);
+                        int c = (mx - BOARD_X) / CELL;
+                        int r = (my - BOARD_Y) / CELL;
+
+                        if(r>=0 && r<8 && c>=0 && c<8) {
+                            if(board[r][c] == turn) { selR = r; selC = c; }
+                            else if(selR != -1 && valid(selR, selC, r, c, turn)) {
+                                board[r][c] = turn;
+                                board[selR][selC] = 0;
+                                selR = -1;
+                                turn = (turn == 1) ? 2 : 1;
+                                timerPC = clock();
+                            }
+                        }
+                    }
+                } else {
+                    if (clock() - timerPC > 1000) { // PC-ul asteapta 1 secunda
+                        mutarePC(turn);
+                        timerPC = 0;
+                    }
+                }
+            }
+        }
+        else if(stare == 4) { // FINAL
+            setcolor(C_PORTOCALIU);
+            settextstyle(3, 0, 5);
+            char msg[50];
+            if (winner == 1) strcpy(msg, "VULPEA A CASTIGAT!");
+            else strcpy(msg, "CAINII AU CASTIGAT!");
+
+            outtextxy(150, 150, msg);
+
+            buton(250, 300, "Joaca Iar");
+            buton(250, 380, "Iesire");
+
+            if(ismouseclick(WM_LBUTTONDOWN)) {
+                int mx, my; getmouseclick(WM_LBUTTONDOWN, mx, my);
+                if(mx>250 && mx<550 && my>300 && my<350) { stare = 1; }
+                if(mx>250 && mx<550 && my>380 && my<430) { stare = 0; }
+            }
+        }
+
+        pagina = 1 - pagina;
+        // 16ms ~ 60fps
+        delay(16);
+    }
+
+    return 0;
+}
