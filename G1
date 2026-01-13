@@ -14,9 +14,9 @@
 // Culori
 #define C_ALB 15
 #define C_GRI 8
-#define C_ROSU 4    // Vulpe
-#define C_ALBASTRU 1 // Caini
-#define C_GALBEN 14 // Selectie
+#define C_ROSU 4
+#define C_ALBASTRU 1
+#define C_GALBEN 14
 #define C_PORTOCALIU 12
 #define C_NEGRU 0
 
@@ -26,8 +26,6 @@ int turn = 1;         // 1=Vulpe, 2=Caini
 int stare = 0;        // 0=Meniu, 1=Mod, 2=AlegereParte, 3=Joc, 4=Final
 int selR = -1, selC = -1; // Piesa selectata
 int winner = 0;       // Cine a castigat
-
-// Configurari
 int isPvP = 0;        // 0=Cu PC, 1=Cu Om
 int euSuntVulpe = 1;  // Daca joc cu PC-ul
 
@@ -41,7 +39,10 @@ void initJoc() {
 
 
     board[0][4] = 1;
-    board[7][1] = 2; board[7][3] = 2; board[7][5] = 2; board[7][7] = 2;
+    board[7][1] = 2;
+    board[7][3] = 2;
+    board[7][5] = 2;
+    board[7][7] = 2;
 
     turn = 1;
     selR = -1;
@@ -63,7 +64,6 @@ int valid(int r1, int c1, int r2, int c2, int piesa) {
 }
 
 int verificaCastigator() {
-    // verifica daca a castigat vulpea(a ajuns jos)
     for(int i=0; i<8; i++)
         if(board[7][i] == 1) return 1; // 1=Vulpe Wins
     // daca au castigat cainii? cautam vulpea:
@@ -71,16 +71,18 @@ int verificaCastigator() {
     for(int i=0; i<8; i++)
         for(int j=0; j<8; j++)
             if(board[i][j] == 1) {
-                    vr=i; vc=j;
+                    vr=i;
+                    vc=j;
             }
 
-    // Verificam daca vulpea are vreo mutare
     if(valid(vr, vc, vr+1, vc-1, 1)) vulpeBlocata = 0;
     if(valid(vr, vc, vr+1, vc+1, 1)) vulpeBlocata = 0;
 
-    if(vulpeBlocata) return 2; // Cainii castiga
+    if(valid(vr, vc, vr-1, vc-1, 1)) vulpeBlocata = 0;
+    if(valid(vr, vc, vr-1, vc+1, 1)) vulpeBlocata = 0;
 
-    return 0; // Nimeni nu a castigat inca
+    if(vulpeBlocata) return 2;
+    return 0;
 }
 
 
@@ -94,30 +96,28 @@ void mutarePC(int piesaPC) {
             // verificam daca am gasit o piesa care apartine PC-ului
             if(board[i][j] == piesaPC) {
 
-            // verificam cele 4 colturi
-
-                // Verificam STANGA-JOS (i+1, j-1)
+                // Verif STANGA-JOS (i+1, j-1)
                 if(valid(i, j, i+1, j-1, piesaPC) == 1) {
-                    startR[k] = i; startC[k] = j;   // retinem de unde pleaca
-                    finalR[k] = i+1; finalC[k] = j-1; // retinem unde ajunge
+                    startR[k] = i; startC[k] = j;
+                    finalR[k] = i+1; finalC[k] = j-1;
                     k++;
                 }
 
-                // Verificam DREAPTA-JOS (i+1, j+1)
+                // Verif DREAPTA-JOS (i+1, j+1)
                 if(valid(i, j, i+1, j+1, piesaPC) == 1) {
                     startR[k] = i; startC[k] = j;
                     finalR[k] = i+1; finalC[k] = j+1;
                     k++;
                 }
 
-                // Verificam STANGA-SUS (i-1, j-1)
+                // Verif STANGA-SUS (i-1, j-1)
                 if(valid(i, j, i-1, j-1, piesaPC) == 1) {
                     startR[k] = i; startC[k] = j;
                     finalR[k] = i-1; finalC[k] = j-1;
                     k++;
                 }
 
-                // Verificam DREAPTA-SUS (i-1, j+1)
+                // Verif DREAPTA-SUS (i-1, j+1)
                 if(valid(i, j, i-1, j+1, piesaPC) == 1) {
                     startR[k] = i; startC[k] = j;
                     finalR[k] = i-1; finalC[k] = j+1;
@@ -126,11 +126,10 @@ void mutarePC(int piesaPC) {
             }
         }
     }
-// mutam daca am gasit macar o posibilitate:
     if(k > 0) {
         int ales = rand() % k;
 
-        // Scoatem coordonatele din vectorii nostrii
+        // Scoatem coordonatele din vectori
         int rVechi = startR[ales];
         int cVechi = startC[ales];
         int rNou = finalR[ales];
@@ -138,9 +137,8 @@ void mutarePC(int piesaPC) {
 
         // Facem schimbul pe tabla
         board[rNou][cNou] = piesaPC; // Punem piesa in noua pozitie
-        board[rVechi][cVechi] = 0;   // Stergem piesa din vechea pozitie
+        board[rVechi][cVechi] = 0;
 
-        // Schimbam tura
         if(turn == 1) turn = 2;
         else turn = 1;
     }
@@ -231,8 +229,8 @@ int main() {
     clock_t timerF=0;
 
     while(1) {
-        setactivepage(pagina);       // Desenam pe pagina ascunsa
-        setvisualpage(1 - pagina);   // vedem cealalta pagina
+        setactivepage(pagina);
+        setvisualpage(1 - pagina);
         setfillstyle(SOLID_FILL, C_NEGRU);
         bar(0, 0, SCREEN_W, SCREEN_H);
 
@@ -256,9 +254,16 @@ int main() {
             buton(250, 350, "Player vs Player");
 
             if(ismouseclick(WM_LBUTTONDOWN)) {
-                int mx, my; getmouseclick(WM_LBUTTONDOWN, mx, my);
-                if(mx>250 && mx<550 && my>250 && my<300) { isPvP=0; stare=2; }
-                if(mx>250 && mx<550 && my>350 && my<400) { isPvP=1; stare=2; }
+                int mx, my;
+                getmouseclick(WM_LBUTTONDOWN, mx, my);
+                if(mx>250 && mx<550 && my>250 && my<300) {
+                        isPvP=0;
+                        stare=2;
+                        }
+                if(mx>250 && mx<550 && my>350 && my<400) {
+                        isPvP=1;
+                        stare=2;
+                        }
             }
         }
         else if(stare == 2) {
@@ -268,8 +273,16 @@ int main() {
 
             if(ismouseclick(WM_LBUTTONDOWN)) {
                 int mx, my; getmouseclick(WM_LBUTTONDOWN, mx, my);
-                if(mx>250 && mx<550 && my>250 && my<300) { euSuntVulpe=1; initJoc(); stare=3; }
-                if(mx>250 && mx<550 && my>350 && my<400) { euSuntVulpe=0; initJoc(); stare=3; }
+                if(mx>250 && mx<550 && my>250 && my<300) {
+                        euSuntVulpe=1;
+                        initJoc();
+                        stare=3;
+                        }
+                if(mx>250 && mx<550 && my>350 && my<400) {
+                        euSuntVulpe=0;
+                        initJoc();
+                        stare=3;
+                        }
             }
         }
         else if(stare == 3) {
@@ -278,7 +291,7 @@ int main() {
             winner = verificaCastigator();
             if(winner != 0) {
                     if(timerF == 0) timerF = clock(); //daca abia am castigat, pornim un timer
-                    if(clock() - timerF > 1500){
+                    if(clock() - timerF > 500){
                         stare = 4;
                         timerF = 0;
                     }
@@ -296,7 +309,10 @@ int main() {
                         int r = (my - BOARD_Y) / CELL;
 
                         if(r>=0 && r<8 && c>=0 && c<8) {
-                            if(board[r][c] == turn) { selR = r; selC = c; }
+                            if(board[r][c] == turn) {
+                                    selR = r;
+                                    selC = c;
+                                    }
                             else if(selR != -1 && valid(selR, selC, r, c, turn)) {
                                 board[r][c] = turn;
                                 board[selR][selC] = 0;
@@ -307,7 +323,7 @@ int main() {
                         }
                     }
                 } else {
-                    if (clock() - timerPC > 1000) { // PC-ul asteapta 1 secunda
+                    if (clock() - timerPC > 1000) {
                         mutarePC(turn);
                         timerPC = 0;
                     }
@@ -334,7 +350,6 @@ int main() {
         }
 
         pagina = 1 - pagina;
-        // 16ms ~ 60fps
         delay(16);
     }
 
