@@ -64,25 +64,51 @@ int valid(int r1, int c1, int r2, int c2, int piesa) {
 }
 
 int verificaCastigator() {
-    for(int i=0; i<8; i++)
-        if(board[7][i] == 1) return 1; // 1=Vulpe Wins
-    // daca au castigat cainii? cautam vulpea:
-    int vr, vc, vulpeBlocata = 1;
-    for(int i=0; i<8; i++)
-        for(int j=0; j<8; j++)
+
+    for(int i=0; i<8; i++) {
+        if(board[7][i] == 1) return 1;
+    }
+
+    // cautam coordonatele vulpii
+    int vr = -1, vc = -1;
+    for(int i=0; i<8; i++) {
+        for(int j=0; j<8; j++) {
             if(board[i][j] == 1) {
-                    vr=i;
-                    vc=j;
+                vr = i;
+                vc = j;
+                break;
             }
+        }
+    }
 
-    if(valid(vr, vc, vr+1, vc-1, 1)) vulpeBlocata = 0;
-    if(valid(vr, vc, vr+1, vc+1, 1)) vulpeBlocata = 0;
+    // Pentru orice eventualitate, verificam daca vulpea nu e pe tabla
+    if(vr == -1) return 2;
 
-    if(valid(vr, vc, vr-1, vc-1, 1)) vulpeBlocata = 0;
-    if(valid(vr, vc, vr-1, vc+1, 1)) vulpeBlocata = 0;
+    // verificam scaparile pe diagonala
+    int dr[] = {-1, -1, 1, 1};
+    int dc[] = {-1, 1, -1, 1};
 
-    if(vulpeBlocata) return 2;
-    return 0;
+    int areMiscareValida = 0;
+
+    for(int k=0; k<4; k++) {
+        int nR = vr + dr[k]; // rand vecin
+        int nC = vc + dc[k]; // coloana vecina
+
+        // verificam daca vecinul e in interiorul tablei
+        if(nR >= 0 && nR <= 7 && nC >= 0 && nC <= 7) {
+
+            // verif daca vecinul e liber
+            if(board[nR][nC] == 0) {
+                areMiscareValida = 1;
+                break; // s-a gasit o scapare
+            }
+        }
+    }
+
+    // Daca am verificat toti vecinii si n-am gasit nicio miscare valida:
+    if(areMiscareValida == 0) return 2;
+
+    return 0; // Jocul continua
 }
 
 
